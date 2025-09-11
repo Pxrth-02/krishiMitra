@@ -1,0 +1,238 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  farmer      Farmer?
+  
+  @@map("users")
+}
+
+model Farmer {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  name          String
+  location      String
+  district      String
+  state         String        @default("Kerala")
+  landSize      Float         // in acres
+  soilType      SoilType
+  irrigationType IrrigationType
+  mainCrop      String
+  secondaryCrops String[]     @default([])
+  experience    Int           // years of experience
+  phoneNumber   String?
+  preferredLanguage Language  @default(MALAYALAM)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activities    Activity[]
+  advisories    Advisory[]
+  reminders     Reminder[]
+  alerts        Alert[]
+  
+  @@map("farmers")
+}
+
+model Activity {
+  id          String      @id @default(cuid())
+  farmerId    String
+  type        ActivityType
+  description String
+  crop        String?
+  area        Float?      // area covered in acres
+  quantity    String?     // quantity of input used
+  cost        Float?      // cost in INR
+  date        DateTime    @default(now())
+  notes       String?
+  weather     String?     // weather conditions during activity
+  createdAt   DateTime    @default(now())
+  
+  farmer      Farmer      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  
+  @@map("activities")
+}
+
+model Advisory {
+  id          String        @id @default(cuid())
+  farmerId    String
+  title       String
+  content     String
+  type        AdvisoryType
+  priority    Priority      @default(MEDIUM)
+  isRead      Boolean       @default(false)
+  validUntil  DateTime?
+  createdAt   DateTime      @default(now())
+  
+  farmer      Farmer        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  
+  @@map("advisories")
+}
+
+model Reminder {
+  id          String      @id @default(cuid())
+  farmerId    String
+  title       String
+  description String
+  type        ReminderType
+  scheduledFor DateTime
+  isCompleted Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  farmer      Farmer      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  
+  @@map("reminders")
+}
+
+model Alert {
+  id          String      @id @default(cuid())
+  farmerId    String
+  title       String
+  message     String
+  type        AlertType
+  severity    AlertSeverity @default(INFO)
+  isRead      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  farmer      Farmer      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  
+  @@map("alerts")
+}
+
+model CropCalendar {
+  id          String   @id @default(cuid())
+  crop        String
+  district    String
+  month       Int      // 1-12
+  activity    String
+  description String
+  createdAt   DateTime @default(now())
+  
+  @@unique([crop, district, month, activity])
+  @@map("crop_calendars")
+}
+
+model WeatherData {
+  id          String   @id @default(cuid())
+  location    String
+  district    String
+  date        DateTime
+  temperature Float
+  humidity    Float
+  rainfall    Float
+  windSpeed   Float
+  condition   String
+  createdAt   DateTime @default(now())
+  
+  @@unique([location, date])
+  @@map("weather_data")
+}
+
+model PestOutbreak {
+  id          String   @id @default(cuid())
+  location    String
+  district    String
+  crop        String
+  pestName    String
+  severity    AlertSeverity
+  reportedAt  DateTime @default(now())
+  description String?
+  
+  @@map("pest_outbreaks")
+}
+
+enum SoilType {
+  CLAY
+  SANDY
+  LOAMY
+  SILT
+  LATERITE
+  ALLUVIAL
+  BLACK_COTTON
+}
+
+enum IrrigationType {
+  DRIP
+  SPRINKLER
+  FLOOD
+  FURROW
+  RAINFED
+}
+
+enum Language {
+  MALAYALAM
+  ENGLISH
+  HINDI
+}
+
+enum ActivityType {
+  SOWING
+  IRRIGATION
+  FERTILIZER_APPLICATION
+  PESTICIDE_APPLICATION
+  WEEDING
+  HARVESTING
+  LAND_PREPARATION
+  PRUNING
+  MULCHING
+  OTHER
+}
+
+enum AdvisoryType {
+  WEATHER
+  PEST_DISEASE
+  FERTILIZER
+  IRRIGATION
+  HARVESTING
+  MARKET_PRICE
+  GOVERNMENT_SCHEME
+  GENERAL
+}
+
+enum ReminderType {
+  IRRIGATION
+  FERTILIZER
+  PESTICIDE
+  HARVESTING
+  SOWING
+  MARKET_VISIT
+  SCHEME_DEADLINE
+  WEATHER_ALERT
+}
+
+enum AlertType {
+  WEATHER
+  PEST_OUTBREAK
+  PRICE_ALERT
+  GOVERNMENT_SCHEME
+  EMERGENCY
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
